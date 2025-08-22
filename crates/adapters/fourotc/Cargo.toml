@@ -1,0 +1,83 @@
+[package]
+name = "fourotc"
+version = "0.1.0"
+edition = "2021"
+authors = ["Nautilus <hello@nautechsystems.io>"]
+description = "NautilusTrader adapter for 4OTC"
+documentation = "https://docs.nautilustrader.io"
+homepage = "https://nautilustrader.io"
+repository = "https://github.com/nautechsystems/nautilus_trader"
+license = "LGPL-3.0-or-later"
+
+[lib]
+name = "fourotc"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Core nautilus dependencies
+nautilus-common = { path = "../../common" }
+nautilus-core = { path = "../../core" }
+nautilus-model = { path = "../../model" }
+nautilus-network = { path = "../../network" }
+nautilus-data = { path = "../../data" }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+async-trait = "0.1"
+
+# NATS client
+async-nats = "0.36"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Utilities
+ahash = "0.8"
+dashmap = "6.0"
+ustr = "1.0"
+uuid = { version = "1.0", features = ["v4"] }
+
+# Time
+time = { version = "0.3", features = ["parsing", "formatting", "macros"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# URL parsing
+url = "2.5"
+
+# Config
+config = "0.14"
+toml = "0.8"
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Protobuf dependencies for 4OTC NATS messages
+prost = "0.13"
+prost-types = "0.13"
+
+# Python bindings (optional)
+pyo3 = { version = "0.25.1", features = ["extension-module"], optional = true }
+
+[build-dependencies]
+prost-build = "0.13"
+
+[dev-dependencies]
+rstest = "0.23"
+tokio-test = "0.4"
+
+[features]
+default = []
+python = ["nautilus-core/python", "nautilus-model/python", "nautilus-common/python", "pyo3"]
+
+[[bin]]
+name = "fourotc_data_client"
+path = "bin/data_client.rs"
