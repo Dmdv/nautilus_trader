@@ -1,0 +1,26 @@
+trader_id: "BACKTEST-EMA-001"
+log_level: "INFO"
+
+venues:
+  - name: "BINANCE"
+    oms_type: "NETTING"
+    account_type: "MARGIN"
+    starting_balances: ["100000 USDT"]
+
+data:
+  - catalog_path: "data/catalog"
+    data_cls: "nautilus_trader.model.data:Bar"
+    instrument_id: "BTCUSDT-PERP.BINANCE"
+    bar_spec: "1-MINUTE-LAST"
+    start_time: "2024-01-01"
+    end_time: "2024-02-01"
+
+strategies:
+  - strategy_path: "strategies.trend.ema_cross:EMACrossStrategy"
+    config_path: "strategies.trend.ema_cross:EMACrossConfig"
+    config:
+      instrument_id: "BTCUSDT-PERP.BINANCE"
+      bar_type: "BTCUSDT-PERP.BINANCE-1-MINUTE-LAST-EXTERNAL"
+      fast_period: 10
+      slow_period: 20
+      trade_size: "0.01"

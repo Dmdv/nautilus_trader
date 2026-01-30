@@ -5,15 +5,15 @@
 # Help:  make help
 
 .PHONY: help install install-debug install-dev install-highprec clean env-check \
-        test test-unit test-integration lint typecheck \
-        config-check config-template credentials-test \
-        secrets-check secrets-rotate ip-whitelist-verify security-audit \
-        tardis-download tardis-sync data-import data-catalog-info data-validate data-download-range \
-        strategy-new strategy-lint strategy-test strategy-validate \
-        backtest-run backtest-sweep backtest-walkforward backtest-montecarlo backtest-report backtest-compare \
-        dry-run dry-run-status shadow-run live-paper live-prod live-status live-stop exchange-status \
-        health-check backup-state restore-state logs-tail metrics-export circuit-breaker-status \
-        docker-build docker-run
+	    test test-unit test-integration lint typecheck \
+	    config-check config-template credentials-test \
+	    secrets-check secrets-rotate ip-whitelist-verify security-audit \
+	    tardis-download tardis-sync data-import data-catalog-info data-validate data-download-range \
+	    strategy-new strategy-lint strategy-test strategy-validate \
+	    backtest-run backtest-sweep backtest-walkforward backtest-montecarlo backtest-report backtest-compare \
+	    dry-run dry-run-status shadow-run live-paper live-prod live-status live-stop exchange-status \
+	    health-check backup-state restore-state logs-tail metrics-export circuit-breaker-status \
+	    docker-build docker-run
 
 # Colors for output
 CYAN := \033[36m
@@ -179,59 +179,7 @@ config-check: ## Validate .env and API connectivity
 
 config-template: ## Generate .env.template with all variables
 	@echo "$(GREEN)Generating .env.template...$(RESET)"
-	@cat > .env.template << 'ENVTEMPLATE'
-# NautilusTrader Configuration Template
-# Copy to .env and fill in your values
-# NEVER commit .env to version control
-
-#==============================================================================
-# BINANCE (https://www.binance.com/en/my/settings/api-management)
-#==============================================================================
-BINANCE_API_KEY=
-BINANCE_API_SECRET=
-BINANCE_TESTNET=true
-
-#==============================================================================
-# BYBIT (https://www.bybit.com/app/user/api-management)
-#==============================================================================
-BYBIT_API_KEY=
-BYBIT_API_SECRET=
-BYBIT_TESTNET=true
-
-#==============================================================================
-# OKX (https://www.okx.com/account/my-api)
-#==============================================================================
-OKX_API_KEY=
-OKX_API_SECRET=
-OKX_PASSPHRASE=
-OKX_TESTNET=true
-
-#==============================================================================
-# dYdX - TESTNET ONLY (use hardware wallet for mainnet)
-#==============================================================================
-# WARNING: Mnemonic provides FULL wallet control
-# For production: Use hardware wallet or AWS KMS
-DYDX_MNEMONIC=
-DYDX_NETWORK=testnet
-
-#==============================================================================
-# TARDIS (https://tardis.dev)
-#==============================================================================
-TARDIS_API_KEY=
-
-#==============================================================================
-# REDIS (for production state management)
-#==============================================================================
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=
-
-#==============================================================================
-# MONITORING (optional)
-#==============================================================================
-PROMETHEUS_PORT=9090
-GRAFANA_PORT=3000
-ENVTEMPLATE
+	@$(PYTHON) scripts/generate_config.py
 	@echo "$(GREEN)✓ Generated .env.template$(RESET)"
 	@echo "$(YELLOW)Copy to .env and fill in your API keys$(RESET)"
 

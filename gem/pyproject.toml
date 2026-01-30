@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["strategies"]
+
+[project]
+name = "nautilus_trader_project"
+version = "0.1.0"
+description = "NautilusTrader implementation for crypto trading"
+readme = "docs/README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "nautilus_trader",
+    "pandas",
+    "numpy",
+    "scipy",
+    "statsmodels",
+    "arch",  # For bootstrap
+    "hmmlearn", # For regime detection
+    "scikit-learn",
+    "scikit-optimize", # For Bayesian optimization
+    "tardis-dev",
+    "python-dotenv",
+    "pyyaml",
+    "click",
+    "rich",
+    "prometheus_client",
+    "hvac", # Vault client
+    "boto3", # AWS client
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-benchmark",
+    "mypy",
+    "ruff",
+    "types-pyyaml",
+    "types-requests",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,32 @@
+trader_id: "PROD-EMA-001"
+instance_id: "PROD-NODE-01"
+log_level: "INFO"
+
+cache_database:
+  type: "redis"
+  host: "localhost"
+  port: 6379
+  db: 0
+
+data_engine:
+  time_bars_build_with_no_updates: true
+
+exec_engine:
+  reconciliation: true
+  reconciliation_lookback_mins: 1440
+
+venues:
+  - name: "BINANCE"
+    client_type: "binance"
+    account_type: "USDT_FUTURE"
+    testnet: false
+
+strategies:
+  - strategy_path: "strategies.trend.ema_cross:EMACrossStrategy"
+    config_path: "strategies.trend.ema_cross:EMACrossConfig"
+    config:
+      instrument_id: "BTCUSDT-PERP.BINANCE"
+      bar_type: "BTCUSDT-PERP.BINANCE-1-MINUTE-LAST-EXTERNAL"
+      fast_period: 10
+      slow_period: 20
+      trade_size: "0.01"

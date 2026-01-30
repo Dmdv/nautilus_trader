@@ -1,0 +1,22 @@
+services:
+  nautilus:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    volumes:
+      - ../logs:/app/logs
+      - ../data:/app/data
+      - ../config:/app/config
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

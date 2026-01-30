@@ -1,0 +1,63 @@
+from pathlib import Path
+
+TEMPLATE = """# NautilusTrader Configuration Template
+# Copy to .env and fill in your values
+# NEVER commit .env to version control
+
+#==============================================================================
+# BINANCE (https://www.binance.com/en/my/settings/api-management)
+#==============================================================================
+BINANCE_API_KEY=
+BINANCE_API_SECRET=
+BINANCE_TESTNET=true
+
+#==============================================================================
+# BYBIT (https://www.bybit.com/app/user/api-management)
+#==============================================================================
+BYBIT_API_KEY=
+BYBIT_API_SECRET=
+BYBIT_TESTNET=true
+
+#==============================================================================
+# OKX (https://www.okx.com/account/my-api)
+#==============================================================================
+OKX_API_KEY=
+OKX_API_SECRET=
+OKX_PASSPHRASE=
+OKX_TESTNET=true
+
+#==============================================================================
+# dYdX - TESTNET ONLY (use hardware wallet for mainnet)
+#==============================================================================
+# WARNING: Mnemonic provides FULL wallet control
+# For production: Use hardware wallet or AWS KMS
+DYDX_MNEMONIC=
+DYDX_NETWORK=testnet
+
+#==============================================================================
+# TARDIS (https://tardis.dev)
+#==============================================================================
+TARDIS_API_KEY=
+
+#==============================================================================
+# REDIS (for production state management)
+#==============================================================================
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+#==============================================================================
+# MONITORING (optional)
+#==============================================================================
+PROMETHEUS_PORT=9090
+GRAFANA_PORT=3000
+"""
+
+def main():
+    path = Path(".env.template")
+    with open(path, "w") as f:
+        f.write(TEMPLATE)
+    print(f"Generated {path}")
+
+if __name__ == "__main__":
+    main()
