@@ -356,11 +356,26 @@ class DeploymentValidator:
                 severity="warning",
             )
 
-        # Production-specific checks
-        if check == DeploymentCheck.RISK_LIMITS_SET:
-            # Check if production config has risk limits
-            from .modes import ProductionConfig
-            if isinstance(config, ProductionConfig):
+        # Production-specific checks - import at runtime only when needed
+        # to avoid circular import issues (ProductionConfig imports from this module)
+        if check in (
+            DeploymentCheck.RISK_LIMITS_SET,
+            DeploymentCheck.CIRCUIT_BREAKER_ENABLED,
+            DeploymentCheck.RECONCILIATION_ENABLED,
+            DeploymentCheck.EMERGENCY_CONTACTS,
+        ):
+            # Runtime import to avoid circular dependency
+            from .modes import ProductionConfig as ProdConfig
+
+            if not isinstance(config, ProdConfig):
+                return DeploymentCheckResult(
+                    check=check,
+                    passed=True,
+                    message=f"{check.value} not applicable for this config type",
+                    severity="info",
+                )
+
+            if check == DeploymentCheck.RISK_LIMITS_SET:
                 has_limits = config.max_position_value > 0 and config.max_daily_loss > 0
                 return DeploymentCheckResult(
                     check=check,
@@ -368,9 +383,7 @@ class DeploymentValidator:
                     message="Risk limits configured" if has_limits else "Risk limits not set",
                 )
 
-        if check == DeploymentCheck.CIRCUIT_BREAKER_ENABLED:
-            from .modes import ProductionConfig
-            if isinstance(config, ProductionConfig):
+            if check == DeploymentCheck.CIRCUIT_BREAKER_ENABLED:
                 return DeploymentCheckResult(
                     check=check,
                     passed=config.require_circuit_breaker,
@@ -378,9 +391,7 @@ class DeploymentValidator:
                             ("enabled" if config.require_circuit_breaker else "disabled"),
                 )
 
-        if check == DeploymentCheck.RECONCILIATION_ENABLED:
-            from .modes import ProductionConfig
-            if isinstance(config, ProductionConfig):
+            if check == DeploymentCheck.RECONCILIATION_ENABLED:
                 return DeploymentCheckResult(
                     check=check,
                     passed=config.require_reconciliation,
@@ -388,9 +399,7 @@ class DeploymentValidator:
                             ("enabled" if config.require_reconciliation else "disabled"),
                 )
 
-        if check == DeploymentCheck.EMERGENCY_CONTACTS:
-            from .modes import ProductionConfig
-            if isinstance(config, ProductionConfig):
+            if check == DeploymentCheck.EMERGENCY_CONTACTS:
                 has_contacts = len(config.emergency_contacts) > 0
                 return DeploymentCheckResult(
                     check=check,

@@ -131,30 +131,19 @@ data-download: ## Download market data
 	@echo "$(GREEN)Downloading market data...$(RESET)"
 	@echo "$(YELLOW)Usage: make data-download SYMBOL=BTCUSDT START=2024-01-01 END=2024-12-31$(RESET)"
 	@if [ -n "$(SYMBOL)" ] && [ -n "$(START)" ] && [ -n "$(END)" ]; then \
-		$(PYTHON) -c "from impl.data import TardisDataDownloader; d = TardisDataDownloader(); d.download('$(SYMBOL)', '$(START)', '$(END)')"; \
+		$(PYTHON) -m impl.data.cli download --symbol "$(SYMBOL)" --start "$(START)" --end "$(END)" --catalog "$(DATA_DIR)/catalog"; \
 	fi
 
 data-catalog-info: ## Show catalog statistics
 	@echo "$(CYAN)Data Catalog Info$(RESET)"
 	@echo "=================="
-	@$(PYTHON) -c "\
-from impl.data import ParquetCatalogManager; \
-mgr = ParquetCatalogManager('$(DATA_DIR)/catalog'); \
-info = mgr.get_catalog_info(); \
-print(f'Instruments: {info.get(\"instrument_count\", 0)}'); \
-print(f'Date range: {info.get(\"start_date\", \"N/A\")} to {info.get(\"end_date\", \"N/A\")}'); \
-print(f'Total size: {info.get(\"total_size_mb\", 0):.1f} MB'); \
-" 2>/dev/null || echo "$(YELLOW)No catalog found or impl.data not available$(RESET)"
+	@$(PYTHON) -m impl.data.cli catalog-info --catalog "$(DATA_DIR)/catalog" 2>/dev/null || \
+		echo "$(YELLOW)No catalog found or impl.data not available$(RESET)"
 
 data-validate: ## Validate data integrity
 	@echo "$(GREEN)Validating data...$(RESET)"
-	@$(PYTHON) -c "\
-from impl.data import ParquetCatalogManager; \
-mgr = ParquetCatalogManager('$(DATA_DIR)/catalog'); \
-gaps = mgr.find_gaps(); \
-if gaps: print(f'Found {len(gaps)} gaps'); \
-else: print('✓ No gaps found'); \
-" 2>/dev/null || echo "$(YELLOW)Validation requires impl.data module$(RESET)"
+	@$(PYTHON) -m impl.data.cli validate --catalog "$(DATA_DIR)/catalog" 2>/dev/null || \
+		echo "$(YELLOW)Validation requires impl.data module$(RESET)"
 
 #==============================================================================
 # BACKTESTING

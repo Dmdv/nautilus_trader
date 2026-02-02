@@ -364,55 +364,66 @@ class StrategyValidator:
         walk_forward: WalkForwardResult | None,
         stationarity: StationarityTestSuite | None,
     ) -> float:
-        """Calculate overall validation score (0-1)."""
-        scores: list[float] = []
-        weights: list[float] = []
+        """
+        Calculate overall validation score (0-1).
+
+        Uses fixed weights for consistent scoring. When a test is not
+        available, a neutral score of 0.5 is used to avoid biasing
+        the overall result based on which tests were run.
+        """
+        # Fixed weight allocation (sums to 1.0)
+        WEIGHT_SHARPE = 0.20
+        WEIGHT_DRAWDOWN = 0.15
+        WEIGHT_MONTE_CARLO = 0.15
+        WEIGHT_BOOTSTRAP = 0.10
+        WEIGHT_DSR = 0.15
+        WEIGHT_WALK_FORWARD = 0.15
+        WEIGHT_STATIONARITY = 0.10
+
+        scores_with_weights: list[tuple[float, float]] = []
 
         # Sharpe ratio score (capped at 3)
         sharpe_score = min(performance.sharpe_ratio / 3.0, 1.0)
-        scores.append(max(0.0, sharpe_score))
-        weights.append(0.2)
+        scores_with_weights.append((max(0.0, sharpe_score), WEIGHT_SHARPE))
 
         # Drawdown score
         dd_score = 1.0 - min(performance.max_drawdown / 0.3, 1.0)
-        scores.append(max(0.0, dd_score))
-        weights.append(0.15)
+        scores_with_weights.append((max(0.0, dd_score), WEIGHT_DRAWDOWN))
 
-        # Monte Carlo score
+        # Monte Carlo score (neutral 0.5 if not available)
         if monte_carlo:
             mc_score = 1.0 if monte_carlo.is_significant else 0.0
-            scores.append(mc_score)
-            weights.append(0.2)
+        else:
+            mc_score = 0.5  # Neutral when not available
+        scores_with_weights.append((mc_score, WEIGHT_MONTE_CARLO))
 
-        # Bootstrap CI score
+        # Bootstrap CI score (neutral 0.5 if not available)
         if bootstrap_sharpe:
             ci_score = 1.0 if bootstrap_sharpe.ci_lower > 0 else 0.5
-            scores.append(ci_score)
-            weights.append(0.1)
+        else:
+            ci_score = 0.5  # Neutral when not available
+        scores_with_weights.append((ci_score, WEIGHT_BOOTSTRAP))
 
         # DSR score
         dsr_score = min(deflated_sharpe * 2, 1.0)
-        scores.append(max(0.0, dsr_score))
-        weights.append(0.15)
+        scores_with_weights.append((max(0.0, dsr_score), WEIGHT_DSR))
 
-        # Walk-forward score
+        # Walk-forward score (neutral 0.5 if not available)
         if walk_forward:
             wfe_score = min(walk_forward.wfe / 0.7, 1.0)
-            scores.append(max(0.0, wfe_score))
-            weights.append(0.2)
+        else:
+            wfe_score = 0.5  # Neutral when not available
+        scores_with_weights.append((max(0.0, wfe_score), WEIGHT_WALK_FORWARD))
 
-        # Stationarity score (for stat arb strategies)
+        # Stationarity score (neutral 0.5 if not applicable/available)
         if stationarity:
             stat_score = 1.0 if stationarity.overall_stationary else 0.0
-            scores.append(stat_score)
-            weights.append(0.15)
+        else:
+            stat_score = 0.5  # Neutral when not applicable
+        scores_with_weights.append((stat_score, WEIGHT_STATIONARITY))
 
-        # Calculate weighted average
-        total_weight = sum(weights)
-        if total_weight == 0:
-            return 0.0
-
-        return sum(s * w for s, w in zip(scores, weights)) / total_weight
+        # Calculate weighted average (weights sum to 1.0)
+        return sum(score * weight for score, weight in scores_with_weights)
 
 
 def validate_strategy(

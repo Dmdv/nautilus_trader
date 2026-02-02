@@ -365,11 +365,14 @@ class CircuitBreaker:
         self._events.append(event)
 
         # Notify callbacks
+        import logging
+        logger = logging.getLogger(__name__)
         for callback in self._on_trigger_callbacks:
             try:
                 callback(event)
-            except Exception:
-                pass  # Don't let callback errors affect circuit breaker
+            except Exception as e:
+                # Log but don't let callback errors affect circuit breaker
+                logger.error(f"Circuit breaker callback failed: {e}")
 
     def reset_daily(self) -> None:
         """Reset daily counters."""

@@ -416,45 +416,90 @@ class BacktestRunner:
         gross_loss = abs(sum(f.get("pnl", 0) for f in self._fills_data if f.get("pnl", 0) < 0))
 
         if gross_loss < 1e-10:
-            return float("inf") if gross_profit > 0 else 0.0
+            # Cap at reasonable maximum to avoid JSON serialization issues
+            return 999.99 if gross_profit > 0 else 0.0
 
-        return gross_profit / gross_loss
+        return min(gross_profit / gross_loss, 999.99)
 
     def _extract_equity_curve(self) -> None:
-        """Extract equity curve from engine after run."""
+        """
+        Extract equity curve from engine after run.
+
+        Note: Full equity curve extraction requires account state snapshots
+        during backtest. NautilusTrader provides final account state.
+        For more granular equity curve, use account balance events or
+        implement custom equity tracking in the strategy.
+        """
         if self._engine is None:
             return
 
-        # Get account history if available
         try:
-            account = self._engine.trader.generate_account_report(Venue(self.config.venue))
-            if account:
-                # Start with initial balance
-                self._equity_curve = [self.config.starting_balance]
+            # Try to get account state events for granular equity curve
+            cache = self._engine.cache
+            account = cache.account(Venue(self.config.venue)) if cache else None
 
-                # Add final balance
-                for currency, balance in account.items():
-                    if str(currency) == self.config.base_currency:
-                        self._equity_curve.append(float(balance))
-                        break
+            if account is not None and hasattr(account, "events"):
+                # Extract equity from account events
+                self._equity_curve = [self.config.starting_balance]
+                for event in account.events:
+                    if hasattr(event, "balance"):
+                        try:
+                            for curr, bal in event.balance.items():
+                                if str(curr) == self.config.base_currency:
+                                    self._equity_curve.append(float(bal))
+                                    break
+                        except (AttributeError, TypeError):
+                            pass
+            else:
+                # Fallback: start + end balance (limited precision for Sharpe)
+                account_report = self._engine.trader.generate_account_report(Venue(self.config.venue))
+                self._equity_curve = [self.config.starting_balance]
+                if account_report:
+                    for currency, balance in account_report.items():
+                        if str(currency) == self.config.base_currency:
+                            self._equity_curve.append(float(balance))
+                            break
         except Exception:
-            # Fallback to empty curve
+            # Fallback to initial balance only
             self._equity_curve = [self.config.starting_balance]
 
     def _extract_fills_data(self) -> None:
-        """Extract fills data from engine after run."""
+        """
+        Extract fills data from engine after run.
+
+        Note: PnL calculation requires position-level tracking which
+        NautilusTrader handles internally. We extract position reports
+        to get realized PnL when available.
+        """
         if self._engine is None:
             return
 
         try:
             fills = self._engine.trader.generate_fills_report()
+            positions = self._engine.trader.generate_positions_report()
+
+            # Build position PnL lookup from position reports
+            position_pnl: dict[str, float] = {}
+            if positions is not None:
+                for pos in positions:
+                    # Try to extract realized PnL from position
+                    try:
+                        if hasattr(pos, "realized_pnl"):
+                            inst_id = str(pos.instrument_id) if hasattr(pos, "instrument_id") else str(pos)
+                            position_pnl[inst_id] = float(pos.realized_pnl)
+                    except (AttributeError, TypeError):
+                        pass
+
             if fills is not None:
                 self._fills_data = []
                 for fill in fills:
-                    # Extract basic fill info
+                    # Extract instrument and look up PnL from position
+                    inst_id = str(fill.instrument_id) if hasattr(fill, "instrument_id") else "unknown"
+                    pnl = position_pnl.get(inst_id, 0.0)
+
                     self._fills_data.append({
-                        "instrument": str(fill) if hasattr(fill, "__str__") else "unknown",
-                        "pnl": 0.0,  # Would need actual PnL from position tracking
+                        "instrument": inst_id,
+                        "pnl": pnl,
                     })
         except Exception:
             self._fills_data = []

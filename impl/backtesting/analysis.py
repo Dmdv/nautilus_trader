@@ -492,18 +492,27 @@ def calculate_deflated_sharpe_ratio(
     Returns:
         Deflated Sharpe Ratio (probability strategy is skillful).
     """
-    from scipy import stats
-
     if n_trials <= 0 or n_observations <= 0:
         return 0.0
+
+    try:
+        from scipy import stats
+        has_scipy = True
+    except ImportError:
+        has_scipy = False
 
     # Expected maximum Sharpe under null hypothesis
     # Using Bailey-Lopez de Prado formula
     euler = 0.5772156649  # Euler-Mascheroni constant
 
-    # Expected max Sharpe from trying n_trials random strategies
-    e_max_sharpe = (1 - euler) * stats.norm.ppf(1 - 1 / n_trials) + \
-                   euler * stats.norm.ppf(1 - 1 / (n_trials * np.e))
+    if has_scipy:
+        # Use scipy for precise normal CDF
+        e_max_sharpe = (1 - euler) * stats.norm.ppf(1 - 1 / n_trials) + \
+                       euler * stats.norm.ppf(1 - 1 / (n_trials * np.e))
+    else:
+        # Fallback: approximation using asymptotic formula
+        # For large n_trials, ppf(1 - 1/n) ≈ sqrt(2 * log(n))
+        e_max_sharpe = np.sqrt(2 * np.log(n_trials))
 
     # Variance of Sharpe estimator
     sharpe_var = (1 + 0.5 * sharpe**2 - returns_skewness * sharpe +
@@ -515,6 +524,14 @@ def calculate_deflated_sharpe_ratio(
     sharpe_std = np.sqrt(sharpe_var)
 
     # Deflated Sharpe: P(true Sharpe > 0)
-    dsr = stats.norm.cdf((sharpe - e_max_sharpe) / sharpe_std)
+    z_score = (sharpe - e_max_sharpe) / sharpe_std
+
+    if has_scipy:
+        dsr = stats.norm.cdf(z_score)
+    else:
+        # Fallback: approximate normal CDF using error function
+        # norm.cdf(x) = 0.5 * (1 + erf(x / sqrt(2)))
+        from math import erf
+        dsr = 0.5 * (1 + erf(z_score / np.sqrt(2)))
 
     return float(dsr)

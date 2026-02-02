@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from nautilus_trader.model.data import Bar, QuoteTick, TradeTick
@@ -216,8 +217,9 @@ class BacktestDataLoader:
         """
         inst_ids = [InstrumentId.from_str(i) for i in instrument_ids]
 
-        start_ns = int(start_time.timestamp() * 1e9) if start_time else None
-        end_ns = int(end_time.timestamp() * 1e9) if end_time else None
+        # Use np.int64 to avoid overflow on 32-bit systems with far-future timestamps
+        start_ns = np.int64(start_time.timestamp() * 1e9) if start_time else None
+        end_ns = np.int64(end_time.timestamp() * 1e9) if end_time else None
 
         return self.catalog.bars(
             instrument_ids=inst_ids,
@@ -244,8 +246,9 @@ class BacktestDataLoader:
         """
         inst_ids = [InstrumentId.from_str(i) for i in instrument_ids]
 
-        start_ns = int(start_time.timestamp() * 1e9) if start_time else None
-        end_ns = int(end_time.timestamp() * 1e9) if end_time else None
+        # Use np.int64 to avoid overflow on 32-bit systems
+        start_ns = np.int64(start_time.timestamp() * 1e9) if start_time else None
+        end_ns = np.int64(end_time.timestamp() * 1e9) if end_time else None
 
         return self.catalog.trade_ticks(
             instrument_ids=inst_ids,
@@ -272,8 +275,9 @@ class BacktestDataLoader:
         """
         inst_ids = [InstrumentId.from_str(i) for i in instrument_ids]
 
-        start_ns = int(start_time.timestamp() * 1e9) if start_time else None
-        end_ns = int(end_time.timestamp() * 1e9) if end_time else None
+        # Use np.int64 to avoid overflow on 32-bit systems
+        start_ns = np.int64(start_time.timestamp() * 1e9) if start_time else None
+        end_ns = np.int64(end_time.timestamp() * 1e9) if end_time else None
 
         return self.catalog.quote_ticks(
             instrument_ids=inst_ids,

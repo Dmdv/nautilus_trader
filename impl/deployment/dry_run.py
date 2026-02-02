@@ -118,7 +118,16 @@ class DryRunOrderTracker:
 
         Returns:
             Tracked order with hypothetical fill.
+
+        Raises:
+            ValueError: If quantity <= 0 or side not in (BUY, SELL).
         """
+        # Input validation
+        if quantity <= 0:
+            raise ValueError(f"Quantity must be positive, got {quantity}")
+        if side not in ("BUY", "SELL"):
+            raise ValueError(f"Side must be BUY or SELL, got {side}")
+
         self._order_counter += 1
         signal_time = signal_time or datetime.now(timezone.utc)
 

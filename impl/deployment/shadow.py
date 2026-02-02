@@ -106,6 +106,7 @@ class ShadowOrderTracker:
         self,
         slippage_bps: float = 5.0,
         fill_probability: float = 1.0,
+        random_seed: int | None = None,
     ) -> None:
         """
         Initialize shadow tracker.
@@ -113,9 +114,11 @@ class ShadowOrderTracker:
         Args:
             slippage_bps: Assumed slippage in basis points.
             fill_probability: Probability of fill (for limit orders).
+            random_seed: Random seed for reproducibility. If None, uses default RNG.
         """
         self.slippage_bps = slippage_bps
         self.fill_probability = fill_probability
+        self._rng = np.random.default_rng(random_seed)
         self._fills: list[ShadowFill] = []
         self._positions: dict[str, ShadowPosition] = {}
         self._order_counter = 0
@@ -153,13 +156,22 @@ class ShadowOrderTracker:
 
         Returns:
             ShadowFill if order is filled, None otherwise.
+
+        Raises:
+            ValueError: If quantity <= 0 or side not in (BUY, SELL).
         """
+        # Input validation
+        if quantity <= 0:
+            raise ValueError(f"Quantity must be positive, got {quantity}")
+        if side not in ("BUY", "SELL"):
+            raise ValueError(f"Side must be BUY or SELL, got {side}")
+
         self._order_counter += 1
         timestamp = timestamp or datetime.now(timezone.utc)
         signal_price = signal_price or market_price
 
-        # Check fill probability
-        if np.random.random() > self.fill_probability:
+        # Check fill probability (using seeded RNG for reproducibility)
+        if self._rng.random() > self.fill_probability:
             return None
 
         # Calculate fill price with slippage
