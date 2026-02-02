@@ -1,27 +1,52 @@
 from decimal import Decimal
+import logging
 
-class RiskManager:
-    """
-    Base Risk Manager.
-    Handles position sizing and pre-trade risk checks.
-    """
-    def __init__(self, portfolio, config):
-        self.portfolio = portfolio
-        self.config = config
+class ProductionRiskManager:
+    """Production risk controls beyond built-in limits."""
 
-    def check_risk(self, instrument_id, side, qty: Decimal) -> bool:
-        """
-        Check if order allows adherence to risk limits.
-        """
-        # 1. Max position size check
-        current_pos = self.portfolio.net_position(instrument_id)
-        current_qty = current_pos.quantity if current_pos else 0
+    def __init__(self, strategy, config: dict):
+        self.strategy = strategy
+        self.max_daily_loss = config.get("max_daily_loss", 1000.0)
+        self.max_drawdown = config.get("max_drawdown", 0.10)
         
-        # Simple absolute limit check
-        if abs(current_qty + qty) > self.config.get('max_position_size', float('inf')):
+        self.daily_pnl = 0.0
+        self.peak_equity = 0.0
+        self.circuit_breaker_triggered = False
+        self.logger = logging.getLogger("RiskManager")
+
+    def check_daily_loss(self, pnl_update: float) -> bool:
+        self.daily_pnl += pnl_update
+        if self.daily_pnl < -self.max_daily_loss:
+            self._trigger_circuit_breaker("Daily loss limit breached")
             return False
-
-        # 2. Daily Loss Limit (simplified)
-        # In a real impl, we'd check PnL state
-        
         return True
+
+    def check_drawdown(self, equity: float) -> bool:
+        self.peak_equity = max(self.peak_equity, equity)
+        drawdown = (self.peak_equity - equity) / self.peak_equity if self.peak_equity > 0 else 0
+        
+        if drawdown > self.max_drawdown:
+            self._trigger_circuit_breaker("Drawdown limit breached")
+            return False
+        return True
+
+    def _trigger_circuit_breaker(self, reason: str):
+        self.circuit_breaker_triggered = True
+        self.logger.critical(f"CIRCUIT BREAKER: {reason}")
+        self._flatten_all_positions()
+
+    def _flatten_all_positions(self):
+        """Close all open positions immediately."""
+        if not self.strategy:
+            return
+
+        # Close all positions
+        for position in self.strategy.cache.positions():
+            if position.is_open:
+                self.strategy.close_position(position)
+                self.logger.warning(f"Flattening position: {position.instrument_id}")
+
+        # Cancel all open orders
+        for order in self.strategy.cache.orders_open():
+            self.strategy.cancel_order(order)
+            self.logger.warning(f"Cancelling order: {order.client_order_id}")
